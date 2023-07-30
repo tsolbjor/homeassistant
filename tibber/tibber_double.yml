@@ -1,0 +1,51 @@
+blueprint:
+  name: Tibber Price Double Sensor
+  description: Expose a sensor when the price is more than double the daily average from Tibber.
+  domain: automation
+  input:
+    tibber_entity:
+      name: Tibber Sensor
+      description: The Tibber sensor entity that provides the energy price data.
+      selector:
+        entity:
+          domain: sensor
+    target_sensor:
+      name: Target Sensor
+      description: The sensor that will be exposed when the price is more than double the daily average.
+      selector:
+        entity:
+          domain: sensor
+    attribute_to_check:
+      name: Attribute to Check
+      description: The attribute of the Tibber sensor entity to compare against the daily average.
+      default: "price"
+      selector:
+        text:
+    target_sensor_name:
+      name: Target Sensor Name
+      description: Name for the exposed sensor when activated.
+      default: "Tibber Price Double"
+      selector:
+        text:
+
+mode: single
+max_exceeded: silent
+
+variables:
+  daily_average: "{{ state_attr(tibber_entity, 'daily_average') }}"
+  current_price: "{{ state_attr(tibber_entity, attribute_to_check) | float }}"
+
+trigger:
+  - platform: event
+    event_type: tibber_data_updated
+
+condition:
+  - condition: template
+    value_template: "{{ current_price > 2 * daily_average }}"
+
+action:
+  - service: homeassistant.template
+    data:
+      sensor_id: "{{ target_sensor }}"
+      attribute: state
+      value_template: "{{ target_sensor_name }}"
